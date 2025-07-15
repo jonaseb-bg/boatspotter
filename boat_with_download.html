@@ -1,0 +1,150 @@
+
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Boatspotter – Sea</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <style>
+    body { font-family: sans-serif; margin: 20px; }
+    .section { margin-bottom: 20px; }
+    button { padding: 10px; margin-top: 10px; }
+    input[type="text"], input[type="file"] { width: 100%; padding: 5px; }
+    img { max-width: 100%; display: none; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <h2>Boatspotter – Sea</h2>
+  <form id="seaForm">
+    <div class="section">
+      <label for="photo">Ta bild:</label>
+      <input type="file" id="photo" accept="image/*" capture="environment" required />
+      <img id="preview" src="#" alt="Förhandsvisning" />
+    </div>
+    <div class="section">
+      <label for="cpaTime">CPA-tid:</label>
+      <input type="text" id="cpaTime" readonly />
+      <button type="button" onclick="setCpaTime()">Sätt CPA-tid</button>
+    </div>
+    <div class="section">
+      <label>GPS-position:</label><br />
+      Latitud: <input type="text" id="lat" /><br />
+      Longitud: <input type="text" id="lon" /><br />
+      <button type="button" onclick="getLocation()">Hämta GPS-position</button>
+    </div>
+    <div class="section">
+      <label for="mmsi">MMSI:</label>
+      <input type="text" id="mmsi" />
+    </div>
+    <div class="section">
+      <label for="boatname">Båtens namn:</label>
+      <input type="text" id="boatname" />
+    </div>
+    <div class="section">
+      <label for="notes">Anteckningar:</label>
+      <input type="text" id="notes" />
+    </div>
+    <div class="section">
+      <label>Skrovtyp:</label><br />
+      <label><input type="checkbox" name="skrovtyp" value="Öppen"> Öppen</label><br />
+      <label><input type="checkbox" name="skrovtyp" value="Kabin"> Kabin</label><br />
+      <label><input type="checkbox" name="skrovtyp" value="RIB"> RIB</label><br />
+    </div>
+    <div class="section">
+      <label>Fart:</label><br />
+      <label><input type="checkbox" name="fart" value="<5 knop"> &lt; 5 knop</label><br />
+      <label><input type="checkbox" name="fart" value="5–10 knop"> 5–10 knop</label><br />
+      <label><input type="checkbox" name="fart" value=">10 knop"> &gt; 10 knop</label><br />
+    </div>
+    <button type="button" onclick="generateAndDownload()">Skicka</button>
+  </form>
+
+  <script>
+    const photoInput = document.getElementById('photo');
+    const preview = document.getElementById('preview');
+    photoInput.addEventListener('change', function(evt) {
+      const file = evt.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          preview.src = e.target.result;
+          preview.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    function setCpaTime() {
+      const now = new Date();
+      document.getElementById("cpaTime").value = now.toISOString();
+    }
+
+    function getLocation() {
+      if (!navigator.geolocation) {
+        alert("Geolocation stöds inte av din webbläsare.");
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          document.getElementById("lat").value = position.coords.latitude.toFixed(6);
+          document.getElementById("lon").value = position.coords.longitude.toFixed(6);
+        },
+        (error) => {
+          alert("Kunde inte hämta position: " + error.message);
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    }
+
+    function getCheckedValues(name) {
+      return [...document.querySelectorAll(`input[name="${name}"]:checked`)]
+             .map(cb => cb.value).join(",");
+    }
+
+    async function generateAndDownload() {
+      const zip = new JSZip();
+
+      const now = new Date();
+      const pad = (n) => n.toString().padStart(2, '0');
+      const datePart = now.getFullYear() + pad(now.getMonth()+1) + pad(now.getDate());
+      const timePart = pad(now.getHours()) + pad(now.getMinutes()) + pad(now.getSeconds());
+
+      const lat = document.getElementById("lat").value || "";
+      const lon = document.getElementById("lon").value || "";
+      const mmsi = document.getElementById("mmsi").value.trim();
+      const boatname = document.getElementById("boatname").value.trim();
+      let idPart = "";
+
+      if (boatname) {
+        idPart = mmsi ? `_${mmsi}_${boatname}` : `_${boatname}`;
+      } else if (mmsi) {
+        idPart = `_${mmsi}`;
+      }
+
+      const baseFilename = `boat_${datePart}_${timePart}_${lat}_${lon}${idPart}`;
+
+      const cpaTime = document.getElementById("cpaTime").value;
+      const notes = document.getElementById("notes").value;
+      const skrovtyp = getCheckedValues("skrovtyp");
+      const fart = getCheckedValues("fart");
+
+      const csvContent = `timestamp;cpaTime;lat;lon;mmsi;boatname;notes;skrovtyp;fart\n` +
+                         `${now.toISOString()};${cpaTime};${lat};${lon};${mmsi};${boatname};${notes};${skrovtyp};${fart}`;
+      zip.file(`${baseFilename}.csv`, csvContent);
+
+      const photoFile = document.getElementById("photo").files[0];
+      if (photoFile) {
+        const imgData = await photoFile.arrayBuffer();
+        zip.file(`${baseFilename}.jpg`, imgData);
+      }
+
+      const blob = await zip.generateAsync({ type: "blob" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `${baseFilename}.zip`;
+      link.click();
+    }
+  </script>
+</body>
+</html>
