@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Field</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <style>
+    body { font-family: sans-serif; margin: 20px; }
+    .section { margin-bottom: 20px; }
+    .checkbox-group { display: flex; flex-direction: column; }
+    button { padding: 10px; margin-top: 10px; }
+    input[type="text"], input[type="file"] { width: 100%; padding: 5px; }
+  </style>
+</head>
+<body>
+  <h2>Field – Fältformulär</h2>
+  <form id="fieldForm">
+    <div class="section">
+      <label for="photo">Ta bild:</label>
+      <input type="file" id="photo" name="photo" accept="image/*" capture="environment" />
+    </div>
+    <div class="section">
+      <label for="cpaTime">CPA-tid:</label>
+      <input type="text" id="cpaTime" name="cpaTime" readonly />
+      <button type="button" onclick="setCpaTime()">Sätt CPA-tid</button>
+    </div>
+    <div class="section">
+      <label>GPS-position:</label><br />
+      Latitud: <input type="text" id="lat" name="lat" readonly /><br />
+      Longitud: <input type="text" id="lon" name="lon" readonly /><br />
+      <button type="button" onclick="getLocation()">Hämta GPS-position</button>
+    </div>
+    <div class="section">
+      <label for="notes">Anteckningar:</label>
+      <input type="text" id="notes" name="notes" />
+    </div>
+    <button type="button" onclick="saveAsZip()">Spara som ZIP</button>
+  </form>
+
+  <script>
+    function setCpaTime() {
+      const now = new Date();
+      document.getElementById("cpaTime").value = now.toISOString();
+    }
+
+    function getLocation() {
+      if (!navigator.geolocation) {
+        alert("Geolocation stöds inte av din webbläsare.");
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          document.getElementById("lat").value = position.coords.latitude.toFixed(6);
+          document.getElementById("lon").value = position.coords.longitude.toFixed(6);
+        },
+        (error) => {
+          alert("Kunde inte hämta position: " + error.message);
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    }
+
+    async function saveAsZip() {
+      const zip = new JSZip();
+      const form = document.getElementById('fieldForm');
+      const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+
+      const data = {
+        "CPA-tid": form.cpaTime.value,
+        "Latitud": form.lat.value,
+        "Longitud": form.lon.value,
+        "Anteckningar": form.notes.value
+      };
+
+      const csv = Object.keys(data).join(";") + "\n" + Object.values(data).join(";");
+      zip.file(`rapport_field_${timestamp}.csv`, csv);
+
+      const photoInput = document.getElementById("photo");
+      const photoFile = photoInput.files[0];
+      if (photoFile) {
+        const imgData = await photoFile.arrayBuffer();
+        zip.file(`bild.jpg`, imgData);
+      }
+
+      const blob = await zip.generateAsync({ type: "blob" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `field_${timestamp}.zip`;
+      link.click();
+    }
+  </script>
+</body>
+</html>
