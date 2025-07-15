@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="sv">
 <head>
@@ -44,6 +45,18 @@
       <label for="notes">Anteckningar:</label>
       <input type="text" id="notes" />
     </div>
+    <div class="section">
+      <label>Skrovtyp:</label><br />
+      <label><input type="checkbox" name="skrovtyp" value="Öppen"> Öppen</label><br />
+      <label><input type="checkbox" name="skrovtyp" value="Kabin"> Kabin</label><br />
+      <label><input type="checkbox" name="skrovtyp" value="RIB"> RIB</label><br />
+    </div>
+    <div class="section">
+      <label>Fart:</label><br />
+      <label><input type="checkbox" name="fart" value="<5 knop"> &lt; 5 knop</label><br />
+      <label><input type="checkbox" name="fart" value="5–10 knop"> 5–10 knop</label><br />
+      <label><input type="checkbox" name="fart" value=">10 knop"> &gt; 10 knop</label><br />
+    </div>
     <button type="button" onclick="generateAndDownload()">Skicka</button>
   </form>
 
@@ -84,6 +97,11 @@
       );
     }
 
+    function getCheckedValues(name) {
+      return [...document.querySelectorAll(`input[name="${name}"]:checked`)]
+             .map(cb => cb.value).join(",");
+    }
+
     async function generateAndDownload() {
       const zip = new JSZip();
 
@@ -108,9 +126,11 @@
 
       const cpaTime = document.getElementById("cpaTime").value;
       const notes = document.getElementById("notes").value;
+      const skrovtyp = getCheckedValues("skrovtyp");
+      const fart = getCheckedValues("fart");
 
-      const csvContent = `timestamp;cpaTime;lat;lon;mmsi;boatname;notes\n` +
-                         `${now.toISOString()};${cpaTime};${lat};${lon};${mmsi};${boatname};${notes}`;
+      const csvContent = `timestamp;cpaTime;lat;lon;mmsi;boatname;notes;skrovtyp;fart\n` +
+                         `${now.toISOString()};${cpaTime};${lat};${lon};${mmsi};${boatname};${notes};${skrovtyp};${fart}`;
       zip.file(`${baseFilename}.csv`, csvContent);
 
       const photoFile = document.getElementById("photo").files[0];
