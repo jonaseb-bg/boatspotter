@@ -19,14 +19,13 @@
   <form id="seaForm">
     <div class="section">
       <label for="photo">Ta bild:</label>
-      <input type="file" id="photo" accept="image/*" capture="environment" required />
+      <input type="file" id="photo" accept="image/*" capture="environment" />
       <img id="preview" src="#" alt="Förhandsvisning" />
-<div id="imageInfo" style="font-size: small; color: #444;"></div>
     </div>
     <div class="section">
       <label for="cpaTime">CPA-tid:</label>
       <input type="text" id="cpaTime" readonly />
-      <button type="button" onclick="setCpaTime()">Sätt CPA-tid</button>
+      <button type="button" onclick="setCpaTime()">ZZZSätt CPA-tid</button>
     </div>
     <div class="section">
       <label>GPS-position:</label><br />
@@ -71,8 +70,6 @@
         reader.onload = function(e) {
           preview.src = e.target.result;
           preview.style.display = 'block';
-          const info = document.getElementById("imageInfo");
-          if (info) info.textContent = `Filstorlek: ${Math.round(file.size / 1024)} KB`;
         };
         reader.readAsDataURL(file);
       }
@@ -138,17 +135,40 @@
 
       
       const photoFile = document.getElementById("photo").files[0];
+      let imgIncluded = false;
       if (photoFile) {
         if (photoFile.size === 0) {
           alert("❗ Det verkar som att bilden inte kunde sparas korrekt. Prova att ta om bilden eller välj en befintlig bild från Bilder.");
+        } else {
+          const imgData = await photoFile.arrayBuffer();
+          zip.file(`${baseFilename}.jpg`, imgData);
+          imgIncluded = true;
         }
+      }
 
         const imgData = await photoFile.arrayBuffer();
         zip.file(`${baseFilename}.jpg`, imgData);
       }
 
+      
       const blob = await zip.generateAsync({ type: "blob" });
+      const zipFile = new File([blob], `${baseFilename}.zip`, { type: 'application/zip' });
+
+      if (navigator.canShare && navigator.canShare({ files: [zipFile] })) {
+        try {
+          await navigator.share({
+            title: 'Båtobservation',
+            text: 'Observation från Boatspotter',
+            files: [zipFile]
+          });
+          return;
+        } catch (e) {
+          console.warn("Delning avbröts eller misslyckades", e);
+        }
+      }
+
       const link = document.createElement("a");
+
       link.href = URL.createObjectURL(blob);
       link.download = `${baseFilename}.zip`;
       link.click();
