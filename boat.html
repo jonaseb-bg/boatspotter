@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Boatspotter – Sea</title>
+  <title>Boatspotter – Sea 2</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <style>
     body { font-family: sans-serif; margin: 20px; }
@@ -21,6 +21,7 @@
       <label for="photo">Ta bild:</label>
       <input type="file" id="photo" accept="image/*" capture="environment" required />
       <img id="preview" src="#" alt="Förhandsvisning" />
+<div id="imageInfo" style="font-size: small; color: #444;"></div>
     </div>
     <div class="section">
       <label for="cpaTime">CPA-tid:</label>
@@ -70,6 +71,8 @@
         reader.onload = function(e) {
           preview.src = e.target.result;
           preview.style.display = 'block';
+          const info = document.getElementById("imageInfo");
+          if (info) info.textContent = `Filstorlek: ${Math.round(file.size / 1024)} KB`;
         };
         reader.readAsDataURL(file);
       }
@@ -148,25 +151,8 @@
         zip.file(`${baseFilename}.jpg`, imgData);
       }
 
-      
       const blob = await zip.generateAsync({ type: "blob" });
-      const zipFile = new File([blob], `${baseFilename}.zip`, { type: 'application/zip' });
-
-      if (navigator.canShare && navigator.canShare({ files: [zipFile] })) {
-        try {
-          await navigator.share({
-            title: 'Båtobservation',
-            text: 'Observation från Boatspotter',
-            files: [zipFile]
-          });
-          return;
-        } catch (e) {
-          console.warn("Delning avbröts eller misslyckades", e);
-        }
-      }
-
       const link = document.createElement("a");
-
       link.href = URL.createObjectURL(blob);
       link.download = `${baseFilename}.zip`;
       link.click();
