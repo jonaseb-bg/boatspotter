@@ -19,7 +19,7 @@
   <form id="seaForm">
     <div class="section">
       <label for="photo">Ta bild:</label>
-      <input type="file" id="photo" accept="image/*" capture="environment" />
+      <input type="file" id="photo" accept="image/*" capture="environment" required />
       <img id="preview" src="#" alt="Förhandsvisning" />
     </div>
     <div class="section">
@@ -135,14 +135,12 @@
 
       
       const photoFile = document.getElementById("photo").files[0];
-      let imgIncluded = false;
       if (photoFile) {
         if (photoFile.size === 0) {
           alert("❗ Det verkar som att bilden inte kunde sparas korrekt. Prova att ta om bilden eller välj en befintlig bild från Bilder.");
         } else {
           const imgData = await photoFile.arrayBuffer();
           zip.file(`${baseFilename}.jpg`, imgData);
-          imgIncluded = true;
         }
       }
 
