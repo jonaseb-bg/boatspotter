@@ -142,8 +142,19 @@
       const blob = await zip.generateAsync({ type: "blob" });
       const link = document.createElement("a");
       link.href = URL.createObjectURL(blob);
-      link.download = `${baseFilename}.zip`;
-      link.click();
+      
+      if (navigator.canShare && navigator.canShare({ files: [new File([blob], `${baseFilename}.zip`, { type: 'application/zip' })] })) {
+        const file = new File([blob], `${baseFilename}.zip`, { type: 'application/zip' });
+        navigator.share({
+          title: 'Båtobservation',
+          text: 'Observation från Boatspotter',
+          files: [file]
+        }).catch((error) => console.error('Delning avbröts eller misslyckades', error));
+      } else {
+        link.download = `${baseFilename}.zip`;
+        link.click();
+      }
+    
     }
   </script>
 </body>
