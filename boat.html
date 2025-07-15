@@ -21,6 +21,7 @@
       <label for="photo">Ta bild:</label>
       <input type="file" id="photo" accept="image/*" capture="environment" required />
       <img id="preview" src="#" alt="Förhandsvisning" />
+<div id="imageInfo" style="font-size: small; color: #444;"></div>
     </div>
     <div class="section">
       <label for="cpaTime">CPA-tid:</label>
@@ -70,6 +71,8 @@
         reader.onload = function(e) {
           preview.src = e.target.result;
           preview.style.display = 'block';
+          const info = document.getElementById("imageInfo");
+          if (info) info.textContent = `Filstorlek: ${Math.round(file.size / 1024)} KB`;
         };
         reader.readAsDataURL(file);
       }
@@ -133,8 +136,13 @@
                          `${now.toISOString()};${cpaTime};${lat};${lon};${mmsi};${boatname};${notes};${skrovtyp};${fart}`;
       zip.file(`${baseFilename}.csv`, csvContent);
 
+      
       const photoFile = document.getElementById("photo").files[0];
       if (photoFile) {
+        if (photoFile.size === 0) {
+          alert("❗ Det verkar som att bilden inte kunde sparas korrekt. Prova att ta om bilden eller välj en befintlig bild från Bilder.");
+        }
+
         const imgData = await photoFile.arrayBuffer();
         zip.file(`${baseFilename}.jpg`, imgData);
       }
